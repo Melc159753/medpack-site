@@ -10,28 +10,27 @@ const configuration = new Configuration({
 
 const openai = new OpenAIApi(configuration);
 
-export default async function (req: any, res: any) {
-  const { materia, tema } = req.body;
+export default async function (req: Request) {
+  // A variável 'res' não é mais necessária aqui
+  const { materia, tema } = await req.json();
 
   if (!configuration.apiKey) {
-    res.status(500).json({
+    return new Response(JSON.stringify({
       error: {
         message: 'OpenAI API key not configured, please follow instructions in README.md',
       },
-    });
-    return;
+    }), { status: 500 });
   }
 
   const materiaPrompt = materia || '';
   const temaPrompt = tema || '';
 
   if (materiaPrompt.trim().length === 0 || temaPrompt.trim().length === 0) {
-    res.status(400).json({
+    return new Response(JSON.stringify({
       error: {
         message: 'Please enter a valid materia and tema',
       },
-    });
-    return;
+    }), { status: 400 });
   }
 
   try {
@@ -39,24 +38,22 @@ export default async function (req: any, res: any) {
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: generatePrompt(materiaPrompt, temaPrompt) }],
       temperature: 0.6,
-      stream: false, // <-- A MUDANÇA ESTÁ AQUI
     });
     
-    // Altera a forma de aceder à resposta
     const responseContent = completion.data.choices[0].message?.content;
 
-    res.status(200).json({ result: responseContent });
+    return new Response(JSON.stringify({ result: responseContent }), { status: 200 });
   } catch (error: any) {
     if (error.response) {
       console.error(error.response.status, error.response.data);
-      res.status(error.response.status).json(error.response.data);
+      return new Response(JSON.stringify(error.response.data), { status: error.response.status });
     } else {
       console.error(`Error with OpenAI API request: ${error.message}`);
-      res.status(500).json({
+      return new Response(JSON.stringify({
         error: {
           message: 'An error occurred during your request.',
         },
-      });
+      }), { status: 500 });
     }
   }
 }
