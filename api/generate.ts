@@ -1,56 +1,68 @@
-// Importa os tipos para trabalhar com as funções da Vercel e o Google GenAI
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Configuration, OpenAIApi } from 'openai';
 
-// Esta é a nossa função principal que será executada no back-end
-export default async function handler(
-  request: VercelRequest,
-  response: VercelResponse,
-) {
-  // 1. VERIFICAÇÃO DE SEGURANÇA
-  // Garante que a requisição seja do tipo POST, para mais segurança.
-  if (request.method !== 'POST') {
-    return response.status(405).json({ error: 'Método não permitido' });
+export const config = {
+  runtime: 'edge',
+};
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
+
+export default async function (req: any, res: any) {
+  const { materia, tema } = req.body;
+
+  if (!configuration.apiKey) {
+    res.status(500).json({
+      error: {
+        message: 'OpenAI API key not configured, please follow instructions in README.md',
+      },
+    });
+    return;
+  }
+
+  const materiaPrompt = materia || '';
+  const temaPrompt = tema || '';
+
+  if (materiaPrompt.trim().length === 0 || temaPrompt.trim().length === 0) {
+    res.status(400).json({
+      error: {
+        message: 'Please enter a valid materia and tema',
+      },
+    });
+    return;
   }
 
   try {
-    // 2. OBTENÇÃO SEGURA DA CHAVE DA API
-    // A chave é lida das "Variáveis de Ambiente" do servidor.
-    // Ela NUNCA é enviada para o navegador do usuário.
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('A chave da API do Gemini não foi configurada no servidor.');
-    }
-
-    // 3. RECEBENDO OS DADOS DO FRONT-END
-    // Pega as informações que o front-end enviou (prompt, query, etc.)
-    const { systemPrompt, userQuery, isJson } = request.body;
-
-    // 4. CHAMADA PARA A API DO GEMINI (DO LADO SEGURO)
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemPrompt,
+    const completion = await openai.createChatCompletion({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: generatePrompt(materiaPrompt, temaPrompt) }],
+      temperature: 0.6,
+      stream: false, // <-- A MUDANÇA ESTÁ AQUI
     });
-
-    const generationConfig = {
-      responseMimeType: isJson ? "application/json" : "text/plain",
-    };
-
-    const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: userQuery }] }],
-        generationConfig: generationConfig
-    });
-
-    const geminiResponse = result.response;
     
-    // 5. ENVIANDO A RESPOSTA DE VOLTA PARA O FRONT-END
-    // Apenas o resultado da IA é enviado, nunca a chave.
-    response.status(200).json({ text: geminiResponse.text() });
+    // Altera a forma de aceder à resposta
+    const responseContent = completion.data.choices[0].message?.content;
 
+    res.status(200).json({ result: responseContent });
   } catch (error: any) {
-    // Tratamento de erros
-    console.error('Erro na função de back-end:', error);
-    response.status(500).json({ error: 'Ocorreu um erro ao processar sua solicitação.' });
+    if (error.response) {
+      console.error(error.response.status, error.response.data);
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error(`Error with OpenAI API request: ${error.message}`);
+      res.status(500).json({
+        error: {
+          message: 'An error occurred during your request.',
+        },
+      });
+    }
   }
+}
+
+function generatePrompt(materia: string, tema: string) {
+  const formattedMateria = materia[0].toUpperCase() + materia.slice(1).toLowerCase();
+  const formattedTema = tema[0].toUpperCase() + tema.slice(1).toLowerCase();
+  return `Generate a multiple choice question about ${formattedTema} in the field of ${formattedMateria}.`;
 }
