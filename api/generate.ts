@@ -33,14 +33,14 @@ export default async function (req: Request) {
   }
 
   try {
-    // Note que "stream: true" NÃO está aqui.
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: generatePrompt(materiaPrompt, temaPrompt) }],
+    const completion = await openai.createCompletion({
+      model: 'gpt-3.5-turbo-instruct', // Modelo para o método `createCompletion`
+      prompt: generatePrompt(materiaPrompt, temaPrompt),
       temperature: 0.6,
+      max_tokens: 256,
     });
     
-    const responseContent = completion.data.choices[0].message?.content;
+    const responseContent = completion.data.choices[0].text;
 
     return new Response(JSON.stringify({ result: responseContent }), { status: 200 });
   } catch (error: any) {
