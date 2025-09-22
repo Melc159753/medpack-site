@@ -11,7 +11,6 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 export default async function (req: Request) {
-  // A variável 'res' não é mais necessária aqui
   const { materia, tema } = await req.json();
 
   if (!configuration.apiKey) {
@@ -34,6 +33,7 @@ export default async function (req: Request) {
   }
 
   try {
+    // Note que "stream: true" NÃO está aqui.
     const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: generatePrompt(materiaPrompt, temaPrompt) }],
