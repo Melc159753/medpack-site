@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Estudos: Medicina</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #3b82f6, #1e40af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .main-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .main-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .main-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.1);
+        }
+        .main-btn:active {
+            transform: translateY(-1px) scale(0.99);
+        }
+        .control-btn {
+             background-color: white;
+             border: 1px solid #e2e8f0;
+             color: #475569;
+             transition: all 0.2s ease-in-out;
+        }
+        .control-btn.active {
+            background-color: #eef2ff;
+            color: #312e81;
+            border-color: #818cf8;
+            font-weight: 600;
+        }
+        .subject-btn {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+            color: #475569;
+            transition: all 0.2s ease-in-out;
+        }
+        .subject-btn:hover:not(.active) {
+            background-color: #f8fafc;
+            border-color: #93c5fd;
+            color: #1e40af;
+        }
+        .subject-btn.active {
+            background-color: #2563eb;
+            color: white;
+            border-color: #2563eb;
+            box-shadow: 0 4px 6px -1px rgb(37 99 235 / 0.2), 0 2px 4px -2px rgb(37 99 235 / 0.2);
+        }
+        
+        .mode-btn {
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            color: #475569;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .mode-btn.active {
+            background-color: white;
+            color: #1e40af;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .loader {
+            border: 4px solid #e0e7ff;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
+        }
+        .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+        .animate-fade-out { animation: fade-out 0.3s ease-out forwards; }
+        
+        .option-btn {
+            background-color: white;
+            border: 1px solid #e2e8f0;
+        }
+        .option-btn.selected {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px #c7d2fe;
+        }
+        .option-btn.correct {
+            background-color: #dcfce7; border-color: #22c55e; color: #166534;
+        }
+        .option-btn.incorrect {
+            background-color: #fee2e2; border-color: #ef4444; color: #991b1b;
+        }
+        
+        /* Markdown content styling */
+        .prose-card h1, .prose-card h2, .prose-card h3 {
+            font-weight: 700; color: #1e3a8a;
+            padding-bottom: 0.25rem; border-bottom: 1px solid #dbeafe;
+        }
+        .prose-card h1 { font-size: 1.5rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .prose-card h2 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .prose-card h3 { font-size: 1.1rem; margin-top: 1.25rem; margin-bottom: 0.5rem; border-bottom: none; }
+        .prose-card p { margin-bottom: 1rem; line-height: 1.6; }
+        .prose-card ul, .prose-card ol { margin-left: 1.5rem; margin-bottom: 1rem; }
+        .prose-card li { margin-bottom: 0.5rem; }
+        .prose-card strong { font-weight: 600; color: #1e3a8a; }
+
+        .prose-card {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.20.0"
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div class="absolute top-0 left-0 -z-10 h-full w-full bg-white">
+      <div class="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(121,178,255,0.5)] opacity-50 blur-[80px]"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div id="auth-container" class="flex flex-col items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-md">
+            <div class="flex items-center gap-3 justify-center mb-6">
+                <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+               </div>
+               <h1 class="text-3xl font-bold text-slate-900 gradient-text">Plataforma de Estudos</h1>
+           </div>
+            <div class="bg-white/70 backdrop-blur-md p-8 rounded-2xl shadow-lg border border-white/50">
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-slate-800 text-center">Acessar Plataforma</h2>
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-slate-600">Email</label>
+                        <input type="email" id="login-email" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-slate-600">Senha</label>
+                        <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+                    <button type="submit" class="w-full main-btn bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700">Entrar</button>
+                    <p class="text-center text-sm text-slate-600">
+                        Não tem uma conta? <button type="button" id="show-signup-btn" class="font-semibold text-blue-600 hover:underline">Cadastre-se</button>
+                    </p>
+                </form>
+
+                <!-- Signup Form -->
+                <form id="signup-form" class="space-y-6 hidden">
+                    <h2 class="text-2xl font-bold text-slate-800 text-center">Solicitar Acesso</h2>
+                     <div>
+                        <label for="signup-name" class="block text-sm font-medium text-slate-600">Nome</label>
+                        <input type="text" id="signup-name" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="signup-email" class="block text-sm font-medium text-slate-600">Email</label>
+                        <input type="email" id="signup-email" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-slate-600">Senha</label>
+                        <input type="password" id="signup-password" required class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <p id="signup-error" class="text-red-500 text-sm text-center hidden"></p>
+                    <button type="submit" class="w-full main-btn bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700">Enviar Solicitação</button>
+                    <p class="text-center text-sm text-slate-600">
+                        Já tem uma conta? <button type="button" id="show-login-btn" class="font-semibold text-blue-600 hover:underline">Faça login</button>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- App Container -->
+    <div id="app-container" class="max-w-4xl mx-auto p-4 sm:p-6 md:p-8 hidden">
+        
+        <div id="admin-panel" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-2xl mb-6 shadow-sm">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-bold text-amber-800">Painel do Administrador</h2>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 8a6 6 0 11-12 0 6 6 0 0112 0zM7 8a1 1 0 11-2 0 1 1 0 012 0zm5 0a1 1 0 11-2 0 1 1 0 012 0zm5 0a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <p class="text-amber-700 mt-1 mb-4">Usuários aguardando aprovação:</p>
+            <div id="pending-users-list" class="space-y-3">
+                <!-- Pending users will be injected here -->
+            </div>
+        </div>
+        
+        <header class="flex flex-col sm:flex-row items-center justify-between mb-8">
+            <div class="flex items-center gap-3">
+                 <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                </div>
+                <h1 class="text-3xl font-bold text-slate-900 gradient-text">Plataforma de Estudos</h1>
+            </div>
+            <div class="flex items-center gap-4 mt-4 sm:mt-0">
+                <div id="mode-switcher" class="flex items-center gap-1 rounded-full bg-slate-200 p-1">
+                    <button id="nav-aula-btn" data-mode="aula" class="mode-btn active">Modo Aula</button>
+                    <button id="nav-questao-btn" data-mode="questao" class="mode-btn">Modo Questão</button>
+                </div>
+                <button id="logout-btn" class="text-slate-500 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <!-- MODO AULA -->
+            <div id="aula-mode">
+                 <div class="bg-white/60 backdrop-blur-md border border-white/30 shadow-sm p-6 rounded-2xl mb-6 space-y-6">
+                     <div>
+                        <h3 class="text-lg font-semibold text-slate-700 mb-3 text-center">1. Selecione a Matéria</h3>
+                        <div id="subject-selector" class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base active" data-subject="semiologia">Semiologia</button>
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base" data-subject="farmacologia">Farmacologia Geral</button>
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base" data-subject="pediatria">Pediatria (SCA)</button>
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base" data-subject="tecnicas_operatorias">Técnicas Operatórias</button>
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base" data-subject="patologia">Patologia Médica</button>
+                             <button class="subject-btn flex-1 p-3 rounded-lg font-bold text-base" data-subject="propedeutica">Propedêutica</button>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-slate-200 pt-6">
+                        <h3 class="text-lg font-semibold text-slate-700 mb-3 text-center">2. Escolha um Tópico Sugerido</h3>
+                        <div id="suggested-topics" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 items-center border-t border-slate-200 pt-6">
+                        <input type="text" id="aula-search-input" class="w-full p-3 text-slate-800 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Ou pesquise um tema específico aqui...">
+                        <button id="aula-search-btn" class="main-btn w-full sm:w-auto bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 shrink-0 flex items-center justify-center gap-2">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                            Pesquisar Aula
+                        </button>
+                    </div>
+                </div>
+                <div id="aula-content-container" class="min-h-[200px]">
+                     <div id="aula-skeleton-loader" class="hidden prose-card space-y-4 animate-pulse">
+                        <div class="h-8 bg-slate-200 rounded w-3/4"></div>
+                        <div class="space-y-3 pt-4">
+                            <div class="h-4 bg-slate-200 rounded"></div>
+                            <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                             <div class="h-4 bg-slate-200 rounded w-11/12"></div>
+                        </div>
+                         <div class="h-6 bg-slate-200 rounded w-1/3 mt-8"></div>
+                         <div class="space-y-3 pt-4">
+                            <div class="h-4 bg-slate-200 rounded"></div>
+                            <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                        </div>
+                    </div>
+                    <div id="aula-content-wrapper">
+                        <div id="aula-content" class="prose max-w-none prose-card">
+                            <p class="text-slate-500 text-center">O resumo da sua aula aparecerá aqui.</p>
+                        </div>
+                         <div id="switch-to-questao-container" class="text-center mt-6 hidden">
+                             <button id="switch-to-questao-btn" class="main-btn bg-green-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-green-700">Pronto para testar? Ir para Modo Questão</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODO QUESTÃO -->
+            <div id="questao-mode" class="hidden">
+                <div class="bg-white/60 backdrop-blur-md border border-white/30 p-6 rounded-2xl shadow-sm mb-8 space-y-6">
+                    <div>
+                        <label for="search-input" class="block mb-2 text-lg font-semibold text-slate-700">1. Tema da Questão</label>
+                        <input type="text" id="search-input" class="w-full p-3 text-slate-800 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Ex: Semiologia da ascite, manobra de Mathieu...">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-700 mb-2">2. Nível</h3>
+                            <div id="difficulty-selector" class="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                                <button class="control-btn flex-1 p-2 rounded-md font-medium text-sm" data-difficulty="Fácil">Fácil</button>
+                                <button class="control-btn flex-1 p-2 rounded-md font-medium text-sm active" data-difficulty="Médio">Médio</button>
+                                <button class="control-btn flex-1 p-2 rounded-md font-medium text-sm" data-difficulty="Difícil">Difícil</button>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-700 mb-2">3. Tipo</h3>
+                            <div id="type-selector" class="flex gap-2 bg-slate-100 p-1 rounded-lg">
+                                <button class="control-btn flex-1 p-2 rounded-md font-medium text-sm active" data-type="Aberta">Aberta</button>
+                                <button class="control-btn flex-1 p-2 rounded-md font-medium text-sm" data-type="Fechada">Fechada</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="generate-btn" class="main-btn w-full bg-blue-600 text-white font-semibold py-4 px-6 rounded-lg shadow-md hover:bg-blue-700 text-lg flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                        Gerar Questão
+                    </button>
+                </div>
+                <main class="space-y-6">
+                    <div id="question-container" class="min-h-[120px] p-6 bg-white/70 backdrop-blur-md rounded-2xl shadow-sm border border-white/30 flex items-center justify-center">
+                        <p id="question-text" class="text-lg text-slate-500 font-medium text-center">Configure os parâmetros e gere uma questão.</p>
+                    </div>
+                    <div id="options-container" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    <div id="user-answer-section" class="hidden">
+                        <label for="user-answer-input" class="block mb-2 text-md font-semibold text-slate-700">Sua Resposta:</label>
+                        <textarea id="user-answer-input" rows="6" class="w-full p-4 text-slate-800 bg-white border border-slate-300 rounded-xl shadow-sm" placeholder="Digite sua resposta..."></textarea>
+                    </div>
+                    <div id="check-btn-container" class="hidden">
+                        <button id="check-btn" class="main-btn w-full sm:w-auto bg-slate-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-slate-900">Corrigir e Ver Resposta</button>
+                    </div>
+                    <div id="ai-feedback-container" class="hidden p-6 rounded-xl">
+                        <h3 id="ai-feedback-title" class="font-bold mb-2"></h3>
+                        <div id="ai-feedback-content"></div>
+                    </div>
+                    <div id="answer-container" class="hidden min-h-[120px] p-6 bg-indigo-50 rounded-xl border border-indigo-200 relative">
+                        <h3 id="answer-title" class="font-bold text-indigo-800 mb-2">Resposta Correta:</h3>
+                        <div id="answer-text" class="prose max-w-none text-md text-indigo-900 leading-relaxed"></div>
+                        <div class="mt-4 pt-4 border-t border-indigo-200 flex gap-2 flex-wrap">
+                            <button id="deepen-topic-btn" class="main-btn bg-white text-sm text-indigo-700 font-semibold py-2 px-4 rounded-lg border border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5">✨ Aprofundar</button>
+                            <button id="clinical-case-btn" class="main-btn bg-white text-sm text-indigo-700 font-semibold py-2 px-4 rounded-lg border border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5">✨ Caso Clínico</button>
+                            <button id="explain-simply-btn" class="main-btn bg-white text-sm text-indigo-700 font-semibold py-2 px-4 rounded-lg border border-indigo-200 hover:bg-indigo-50 flex items-center gap-1.5">✨ Simplificar</button>
+                        </div>
+                    </div>
+                    <div id="gemini-output-container" class="hidden p-6 rounded-xl bg-indigo-50 border border-indigo-200">
+                        <h3 id="gemini-output-title" class="font-bold text-indigo-800 mb-2"></h3>
+                        <div id="gemini-output-content" class="prose max-w-none text-indigo-900 leading-relaxed"></div>
+                    </div>
+                </main>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
